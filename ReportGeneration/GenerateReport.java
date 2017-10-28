@@ -20,20 +20,19 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.*;
 import java.awt.*;
 
-/*
-This code will store all answers against all order_id's in an array 
-and then write in the file
-
-*/
 
 public class GenerateReport {
 	
+		public static  boolean requiresCompleteData = false;
+		public static String SHOP_ID = "108617";
+				
+		
 		public static HashMap<String,String> srr_metaData;
 		public static HashMap<String, HashMap<String,String> > map_sff_question;
 		public static HashMap<String, HashMap<String,String> > map_sff_answers;
 		public static ArrayList<String> arr_questionIds;
 		
-		public static String SHOP_ID = "108612";
+
 		public static String SFF_FORM_FILE_NAME = SHOP_ID+"/sff_forms_fields.csv";
 		public static String SFF_FILE_NAME = SHOP_ID+"/sff_reviews.csv";//"sff_reviews_sample_2.csv";
 		public static String SRR_FILE_NAME = SHOP_ID+"/srr_orders.csv";
@@ -48,71 +47,52 @@ public class GenerateReport {
 			mergeSFFData();
 	    }
 	
-		
-		public static long differenceBetweenDates(Date d1, Date d2){
+/*	 # ================== BUSINESS LOGIC METHODS ===================== */				
 
-			return ChronoUnit.SECONDS.between(d1.toInstant(),d2.toInstant());
-
-		}
-		
-		
-		public static void calculateSurveyCompletionTime(HashMap<String,List<Date>> map){
-
-	    	 for(Map.Entry<String, List<Date> > m:map.entrySet())
-	    	 {
-				List<Date> arr = m.getValue();
-				Date minDate = Collections.min(arr);
-				Date maxDate = Collections.max(arr);
-				
-				String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
-				String orderId = m.getKey();
-				
-				if(map_sff_answers.containsKey(orderId)){
-					HashMap<String,String> review = map_sff_answers.get(orderId);
-					review.put("surveyCompletion", completionTime);//created_at
-				}
-
-	    	 }
+		public static  void mergeSFFData(){
 			
-		}
-	
-		public static void parseFormFields(){
-			map_sff_question = new HashMap<String,HashMap<String,String> >(); 
-	    	String csvFile = SFF_FORM_FILE_NAME;
-	        BufferedReader br = null;
-	        String line = "";
-	        
-	        try {
+			File file = new File (SFF_SRR_FILE_NAME);
+			PrintWriter pw; 
+	        StringBuilder sb = new StringBuilder();
+			int lineNumber = 0;
+	       
+			try {
+				file.createNewFile();
+				pw = new PrintWriter(file); 
+				setHeaderForNewCSV(pw,sb);
 
-	            br = new BufferedReader(new FileReader(csvFile));
-				br.readLine();
-	            while ((line = br.readLine()) != null) 
-	            {
-
-	                String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-	                if(Line.length == 3)
-	                {
-						HashMap<String,String> map;
-						String formId = Line[0];
-						String questionId = Line[1];
-						String questionText = Line[2];
-						
-						if (map_sff_question.containsKey(formId)) {
-							map = map_sff_question.get(formId);
+				if (requiresCompleteData){
+					
+					for(Map.Entry<String, String > m:srr_metaData.entrySet()){
+						String orderId = m.getKey();						
+						if (map_sff_answers.containsKey(orderId)){
+							HashMap<String,String> review = map_sff_answers.get(orderId);
+							addRow(pw, sb, orderId, review);
 						}
 						else{
-							map = new HashMap<String,String>();
+							String metaData = m.getValue();
+							addRow(pw, sb, orderId, metaData);
 						}
+						lineNumber++;	
+					}
 						
-						map.put(questionId, questionText);
-						map_sff_question.put(formId, map);
+				}
+				else{
+					for(Map.Entry<String, HashMap<String,String> > m:map_sff_answers.entrySet()){
+						HashMap<String,String> review = m.getValue();
+						String orderId = m.getKey();
+						addRow(pw, sb, orderId, review);
+						lineNumber++;
+					}	
+				}
 
-	                }
-	            }
+			pw.close();
+			System.out.println("Total Lines wrote: " + lineNumber);		
+	        System.out.println("Done!");
 
-	        } 
+			} 
 	        catch (FileNotFoundException e) 
-	        {  
+	        {
 	            e.printStackTrace();
 	        } 
 	        catch (IOException e) 
@@ -121,22 +101,17 @@ public class GenerateReport {
 	        } 
 	        finally 
 	        {
-		
-		
-	            if (br != null) 
-	            {
-	                try 
-	                {
-	                    br.close();
-	                } 
-	                catch (IOException e) 
-	                {
-	                    e.printStackTrace();
-	                }
-	            }
+
 	        }
 
+		
 		}
+
+
+
+
+	
+/*	 # ================== CSV GENERATION METHODS ===================== */		
 	
 		public static  void setHeaderForNewCSV(PrintWriter pw, StringBuilder sb){
 			
@@ -206,8 +181,95 @@ public class GenerateReport {
 				sb.setLength(0);
 
 		}
+		
+		
+		public static void addRow(PrintWriter pw, StringBuilder sb, String orderId, String metaData ){
+				
+		        sb.append(orderId);
+				sb.append(',');	
+		        sb.append(metaData);
+				sb.append(',');	
+		        sb.append(' ');
+						
+				for(int i = 0; i <  arr_questionIds.size(); i++ ){
+						sb.append(',');
+						sb.append(' ');																				
+				}
+		        sb.append('\n');
+
+				pw.write(sb.toString());
+				sb.setLength(0);
+
+		}
 
 
+		
+
+
+/*	 # ================== PARSER METHODS ===================== */
+		
+		public static void parseFormFields(){
+			map_sff_question = new HashMap<String,HashMap<String,String> >(); 
+	    	String csvFile = SFF_FORM_FILE_NAME;
+	        BufferedReader br = null;
+	        String line = "";
+	        
+	        try {
+
+	            br = new BufferedReader(new FileReader(csvFile));
+				br.readLine();
+	            while ((line = br.readLine()) != null) 
+	            {
+
+	                String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+	                if(Line.length == 3)
+	                {
+						HashMap<String,String> map;
+						String formId = Line[0];
+						String questionId = Line[1];
+						String questionText = Line[2];
+						
+						if (map_sff_question.containsKey(formId)) {
+							map = map_sff_question.get(formId);
+						}
+						else{
+							map = new HashMap<String,String>();
+						}
+						
+						map.put(questionId, questionText);
+						map_sff_question.put(formId, map);
+
+	                }
+	            }
+
+	        } 
+	        catch (FileNotFoundException e) 
+	        {  
+	            e.printStackTrace();
+	        } 
+	        catch (IOException e) 
+	        {
+	            e.printStackTrace();
+	        } 
+	        finally 
+	        {
+		
+		
+	            if (br != null) 
+	            {
+	                try 
+	                {
+	                    br.close();
+	                } 
+	                catch (IOException e) 
+	                {
+	                    e.printStackTrace();
+	                }
+	            }
+	        }
+
+		}
+		
 		public static void parseSFF(){
 			
 			BufferedReader br = null;
@@ -318,49 +380,7 @@ public class GenerateReport {
 
 			System.out.println("Total Reviews: "+map_sff_answers.size());
 		
-	}
-
-
-	public static  void mergeSFFData(){
-		
-		File file = new File (SFF_SRR_FILE_NAME);
-		PrintWriter pw; 
-        StringBuilder sb = new StringBuilder();
-		int lineNumber = 0;
-       
-		try {
-			file.createNewFile();
-			pw = new PrintWriter(file); 
-			setHeaderForNewCSV(pw,sb);
-
-			for(Map.Entry<String, HashMap<String,String> > m:map_sff_answers.entrySet()){
-				HashMap<String,String> review = m.getValue();
-				String orderId = m.getKey();
-				addRow(pw, sb, orderId, review);
-				lineNumber++;
-			}	
-
-		pw.close();
-		System.out.println("Total Lines wrote: " + lineNumber);		
-        System.out.println("Done!");
-
-		} 
-        catch (FileNotFoundException e) 
-        {
-            e.printStackTrace();
-        } 
-        catch (IOException e) 
-        {
-            e.printStackTrace();
-        } 
-        finally 
-        {
-
-        }
-
-	
-	}
-
+		}
 		
 	    public static void parseSRRData() 
 	    {
@@ -394,6 +414,7 @@ public class GenerateReport {
 		        finally 
 		        {
 			
+					System.out.println("Total Orders: "+ srr_metaData.size());
 		            if (br != null) 
 		            {
 		                try 
@@ -407,6 +428,39 @@ public class GenerateReport {
 		            }
 		        }
 	    }
+	
+	
+
+/*	 # ================== HELPER METHODS ===================== */
+
+
+		public static long differenceBetweenDates(Date d1, Date d2){
+
+			return ChronoUnit.SECONDS.between(d1.toInstant(),d2.toInstant());
+
+		}
+		
+		
+		public static void calculateSurveyCompletionTime(HashMap<String,List<Date>> map){
+
+	    	 for(Map.Entry<String, List<Date> > m:map.entrySet())
+	    	 {
+				List<Date> arr = m.getValue();
+				Date minDate = Collections.min(arr);
+				Date maxDate = Collections.max(arr);
+				
+				String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
+				String orderId = m.getKey();
+				
+				if(map_sff_answers.containsKey(orderId)){
+					HashMap<String,String> review = map_sff_answers.get(orderId);
+					review.put("surveyCompletion", completionTime);//created_at
+				}
+
+	    	 }
+			
+		}	
+	
 	    
 	    public static void printMap(HashMap<String,String> map)
 	    {
@@ -432,48 +486,3 @@ public class GenerateReport {
 }
 
 
-/*
-
-# ================== USAGE INSTRUCTIONS =====================
-
- 1. Grab CSV from SRR containing: Order id & Metadata columns only
- 2. Name this file 'srr_orders'
- 3. Grab CSV from SFF containing: Form id, question id, order id, answers, converted value, created_at only
- 4. Name this file sff_reviews
- 5. Grab CSV from SFF containing: Form id, question id, question text only
- 6. Name this file sff_form_fields
- 7. Group these files and place them in a folder as per shop id and place folder in same hirearchy as of GenerateReport.java
- 8. Open source code and move to live 36 and update SHOP_ID and that's it.
- 9. Run this code ( NO Other CHANGE, apart from point 8. )
- 10. You will have a new file in same directory made called "REPORT(ShopID).CSV"
- 
-# ======================= SFF Query  ==========================
-
-# 1 => COLLECT FORM QUESTION ID's & TEXT
-
-select forms.id, form_fields.id, translations.translation
-from translations
-join form_fields on form_fields.id = translations.form_field_id
-join forms on forms.id = translations.form_id
-join shops on shops.id = forms.shop_id
-where translations.translation_type = 'label'
-and shops.shop_id = 101085
-
-
-# 2 => COLLECT REVIEWS AGAINST PARTICULAR SHOP
-
-SELECT feedback_details.form_id, feedback_details.form_field_id, feedbacks.order_id, feedback_details.answer, feedback_details.rating_converted_value, feedback_details.created_at
-FROM sff.feedback_details
-join sff.feedbacks on feedbacks.id = feedback_details.feedback_id
-join sff.forms on forms.id = feedback_details.form_id
-inner join sff.shops on shops.id = forms.shop_id
-where shops.shop_id = 108617 
-order by form_id DESC;
-
-# ======================= SRR Query  ==========================
-SELECT r.transaction_id, rm.value
-FROM  `recipients` r
-JOIN recipients_meta rm ON r.id = rm.recipient_id
-WHERE shop_id IN ( Select id from shops where shop_id = 665 )
-
-*/
