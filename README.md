@@ -29,12 +29,14 @@ and shops.shop_id = 101085
 ###### COLLECT REVIEWS AGAINST PARTICULAR SHOP
 
 ```sql
-SELECT feedback_details.form_id, feedback_details.form_field_id, feedbacks.order_id, feedback_details.answer, feedback_details.rating_converted_value, feedback_details.created_at
-FROM sff.feedback_details
-join sff.feedbacks on feedbacks.id = feedback_details.feedback_id
-join sff.forms on forms.id = feedback_details.form_id
+SELECT feedback_details.form_id, feedback_details.form_field_id, feedbacks.order_id, feedback_details.answer, feedback_details.rating_converted_value, feedback_details.created_at, form_activity_streams.last_opened_at
+FROM feedback_details
+join feedbacks on feedbacks.id = feedback_details.feedback_id
+left join orders on orders.review_hash = feedbacks.review_hash
+left join form_activity_streams on form_activity_streams.order_id = orders.id
+join forms on forms.id = feedback_details.form_id
 inner join sff.shops on shops.id = forms.shop_id
-where shops.shop_id = 108617
+where shops.shop_id = 665
 order by form_id DESC;
 ```
 ###### SRR Query

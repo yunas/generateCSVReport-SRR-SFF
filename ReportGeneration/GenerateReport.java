@@ -64,6 +64,9 @@ public class GenerateReport {
 				if (requiresCompleteData){
 					
 					for(Map.Entry<String, String > m:srr_metaData.entrySet()){
+						if (lineNumber >= 273){
+							System.out.println("I am here");
+						}
 						String orderId = m.getKey();						
 						if (map_sff_answers.containsKey(orderId)){
 							HashMap<String,String> review = map_sff_answers.get(orderId);
@@ -280,7 +283,8 @@ public class GenerateReport {
 			String metaData;
 			DateFormat df =  new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 			
-			HashMap<String,List<Date>> map_reviewsDate = new HashMap<String,List<Date>>();
+			HashMap<String,List<Date>> map_reviewCreatedDate = new HashMap<String,List<Date>>();
+			HashMap<String,List<Date>> map_reviewOpenedDate = new HashMap<String,List<Date>>();
 			
 			map_sff_answers = new HashMap<String,HashMap<String,String> >(); 
 			try{
@@ -302,7 +306,7 @@ public class GenerateReport {
 //						System.out.println("Line Read: "+ lineNumber);
 		
 						String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-		                if(Line.length == 6 )
+		                if(Line.length == 7 )
 		                {
 								metaData = "";
 								
@@ -312,7 +316,9 @@ public class GenerateReport {
 								String answer = Line[3];
 								String convertedValue = Line[4];
 								String created_at = Line[5];
-								created_at = created_at.replace("\"", "");								
+								String opened_at = Line[6];
+								created_at = created_at.replace("\"", "");						
+								opened_at = opened_at.replace("\"", "");									
 								if (srr_metaData.containsKey(orderId)){
 									metaData = srr_metaData.get(orderId);
 								}
@@ -323,32 +329,57 @@ public class GenerateReport {
 									review.put(questionId, answer);//questionId, answer
 									review.put("metaData", metaData);
 									review.put("createdAt", created_at);//created_at
+									review.put("openedAt", opened_at);
 								}
 								else{
 									review = new HashMap<String,String> (); 
 									review.put(questionId, answer);//
 									review.put("metaData", metaData);//
 									review.put("createdAt", created_at);//created_at
+									review.put("openedAt", opened_at);									
 								}
 								
-								List<Date> arrDates ;
-								if (map_reviewsDate.containsKey(orderId)){
-									arrDates = map_reviewsDate.get(orderId);									
+								map_sff_answers.put(orderId, review);								
+								++lineNumber;
+								
+								
+								// Storing CreatedAt for SurveyCompletion Time
+								List<Date> arrCreatedDates ;
+								if (map_reviewCreatedDate.containsKey(orderId)){
+									arrCreatedDates = map_reviewCreatedDate.get(orderId);									
 								}
 								else{
-									arrDates = new ArrayList<Date>();
+									arrCreatedDates = new ArrayList<Date>();
 								}
+								
+								// Storing OpenedAt for SurveyCompletion Time								
+								List<Date> arrOpenedDates ;
+								if (map_reviewOpenedDate.containsKey(orderId)){
+									arrOpenedDates = map_reviewOpenedDate.get(orderId);									
+								}
+								else{
+									arrOpenedDates = new ArrayList<Date>();
+								}
+								
+								
 								try {
-									arrDates.add(df.parse(created_at));		
+									arrCreatedDates.add(df.parse(created_at));	
+									if (opened_at.equals("NULL")){
+										arrOpenedDates.add(df.parse(created_at));			
+									}	
+									else{
+										arrOpenedDates.add(df.parse(opened_at));		
+									}
+									
 								} catch (Exception e) {
 									System.out.println("Exception: "+e);
 								}
 
-								map_reviewsDate.put(orderId, arrDates);
+								map_reviewCreatedDate.put(orderId, arrCreatedDates);
+								map_reviewOpenedDate.put(orderId, arrOpenedDates);								
 								
 								
-								map_sff_answers.put(orderId, review);								
-								++lineNumber;
+								
 		            	}
 	        	}
 				System.out.println("Total Line Read: "+ lineNumber);
@@ -363,7 +394,7 @@ public class GenerateReport {
 	        } 
 	        finally 
 	        {
-				calculateSurveyCompletionTime(map_reviewsDate);
+				calculateSurveyCompletionTime(map_reviewCreatedDate,map_reviewOpenedDate);
 	            if (br != null) 
 	            {
 	                try 
@@ -441,17 +472,26 @@ public class GenerateReport {
 		}
 		
 		
-		public static void calculateSurveyCompletionTime(HashMap<String,List<Date>> map){
+		public static void calculateSurveyCompletionTime(HashMap<String,List<Date>> map, HashMap<String,List<Date>> mapOpened){
 
 	    	 for(Map.Entry<String, List<Date> > m:map.entrySet())
 	    	 {
-				List<Date> arr = m.getValue();
-				Date minDate = Collections.min(arr);
-				Date maxDate = Collections.max(arr);
-				
-				String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
+		
 				String orderId = m.getKey();
+				List<Date> arrCreated = m.getValue();
+				List<Date> arrOpened = mapOpened.get(orderId);
 				
+				Date minDate;
+				if (arrOpened.size() > 0){
+					minDate = Collections.min(arrOpened);	
+				}
+				else{
+					minDate = Collections.min(arrCreated);	
+				}
+				
+				Date maxDate = Collections.max(arrCreated);
+
+				String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
 				if(map_sff_answers.containsKey(orderId)){
 					HashMap<String,String> review = map_sff_answers.get(orderId);
 					review.put("surveyCompletion", completionTime);//created_at
