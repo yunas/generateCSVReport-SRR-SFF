@@ -10,7 +10,7 @@
  8. Open source code and move to live 36 and update SHOP_ID and that's it.
  9. Run this code ( NO Other CHANGE, apart from point 8. )
  10. You will have a new file in same directory made called "REPORT(ShopID).CSV"
- 11. Setting "requiresCompleteData" to true maps Reviews on Orders and setting to false maps orders on reviews.
+ 11. Setting "requiresCompleteData" to true maps Reviews on Orders and setting to false maps Orders on Reviews.
  
 # SFF Query
 
@@ -36,7 +36,7 @@ join feedbacks on feedbacks.id = feedback_details.feedback_id
 left join orders on orders.review_hash = feedbacks.review_hash
 left join form_activity_streams on form_activity_streams.order_id = orders.id
 join forms on forms.id = feedback_details.form_id
-inner join sff.shops on shops.id = forms.shop_id
+join sff.shops on shops.id = forms.shop_id
 where shops.shop_id = 665
 order by form_id DESC;
 ```
