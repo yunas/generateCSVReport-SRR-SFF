@@ -5,11 +5,12 @@
  3. Grab CSV from SFF containing: Form id, question id, order id, answers, converted value, created_at only
  4. Name this file sff_reviews
  5. Grab CSV from SFF containing: Form id, question id, question text only
- 6. Name this file sff_form_fields
+ 6. Name this file sff_forms_fields
  7. Group these files and place them in a folder as per shop id and place folder in same hirearchy as of GenerateReport.java
  8. Open source code and move to live 36 and update SHOP_ID and that's it.
  9. Run this code ( NO Other CHANGE, apart from point 8. )
  10. You will have a new file in same directory made called "REPORT(ShopID).CSV"
+ 11. Setting "requiresCompleteData" to true maps Reviews on Orders and setting to false maps orders on reviews.
  
 # SFF Query
 
