@@ -30,7 +30,7 @@ and shops.shop_id = 101085
 ###### COLLECT REVIEWS AGAINST PARTICULAR SHOP
 
 ```sql
-SELECT feedback_details.form_id, feedback_details.form_field_id, feedbacks.order_id, feedback_details.answer, feedback_details.rating_converted_value, feedback_details.created_at, form_activity_streams.last_opened_at
+SELECT feedback_details.form_id, feedback_details.form_field_id, feedbacks.order_id, feedback_details.answer, feedback_details.rating_converted_value, feedbacks.created_at, form_activity_streams.last_opened_at
 FROM feedback_details
 join feedbacks on feedbacks.id = feedback_details.feedback_id
 left join orders on orders.review_hash = feedbacks.review_hash

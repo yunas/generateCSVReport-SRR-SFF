@@ -24,7 +24,7 @@ import java.awt.*;
 public class GenerateReport {
 	
 		public static  boolean requiresCompleteData = false;
-		public static String SHOP_ID = "108617";
+		public static String SHOP_ID = "101084";
 				
 		
 		public static HashMap<String,String> srr_metaData;
@@ -482,6 +482,10 @@ public class GenerateReport {
 				List<Date> arrOpened = mapOpened.get(orderId);
 				
 				Date minDate;
+				
+//				for (int i = 0; i < arrOpened.size(); i++){
+//					System.out.println(arrOpened.get(i));
+//				}
 				if (arrOpened.size() > 0){
 					minDate = Collections.min(arrOpened);	
 				}
@@ -489,7 +493,11 @@ public class GenerateReport {
 					minDate = Collections.min(arrCreated);	
 				}
 				
+				
 				Date maxDate = Collections.max(arrCreated);
+
+//				System.out.println("MinDate "+ minDate);
+//				System.out.println("MaxDate "+ maxDate);				
 
 				String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
 				if(map_sff_answers.containsKey(orderId)){
