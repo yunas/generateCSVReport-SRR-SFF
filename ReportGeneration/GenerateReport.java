@@ -181,7 +181,7 @@ public class GenerateReport {
 			                         
   			}	
 	            }
-                    System.out.println("Language Lines size: " + mLines.size());
+//                    System.out.println("Language Lines size: " + mLines.size());
                     
                     for (int x = 0; x < mLines.size(); x++){
                          StringBuilder csvBuilder = new StringBuilder();
@@ -193,7 +193,7 @@ public class GenerateReport {
                              
                             }
                             String csv = csvBuilder.toString();
-                            System.out.println("line: " + csv);
+//                            System.out.println("line: " + csv);
                             sb.append(csv);
                             sb.append('\n');
                         }
@@ -268,6 +268,8 @@ public class GenerateReport {
 	    	String csvFile = SFF_FORM_FILE_NAME;
 	        BufferedReader br = null;
 	        String line = "";
+			long occurance = 0;
+			long lineNumber = 0;
 	        
 	        try {
 
@@ -275,7 +277,17 @@ public class GenerateReport {
 				br.readLine();
 	            while ((line = br.readLine()) != null) 
 	            {
-
+						occurance = line.chars().filter(num -> num == '"').count();
+						while ( occurance % 2 != 0 ){
+							line += br.readLine();
+							occurance = line.chars().filter(num -> num == '"').count();
+						}
+//						if (lineNumber >= 16){
+//							System.out.println("Line Read: "+ line);	
+//						}
+//						System.out.println("Line Read: "+ lineNumber);
+//						lineNumber++;
+					
 	                String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 	                if(Line.length == 3)
 	                {
