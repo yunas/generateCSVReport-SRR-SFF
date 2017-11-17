@@ -24,11 +24,11 @@ import java.awt.*;
 public class GenerateReport {
 	
 		public static  boolean requiresCompleteData = false;
-		public static String SHOP_ID = "101084";
+		public static String SHOP_ID = "665";
 				
 		
 		public static HashMap<String,String> srr_metaData;
-		public static HashMap<String, HashMap<String,String> > map_sff_question;
+		public static HashMap<String, HashMap<String,ArrayList<String>>> map_sff_question;
 		public static HashMap<String, HashMap<String,String> > map_sff_answers;
 		public static ArrayList<String> arr_questionIds;
 		
@@ -119,17 +119,18 @@ public class GenerateReport {
 		public static  void setHeaderForNewCSV(PrintWriter pw, StringBuilder sb){
 			
 			sb.append("Order ID, Meta Data, Survey Completion");
-			ArrayList<String> questionTexts 	= new ArrayList<String>();
+			HashMap<String,ArrayList<String>> questionTexts 	= new HashMap<String,ArrayList<String>>();
 			arr_questionIds 	= new ArrayList<String>();
 			
-			for(Map.Entry<String, HashMap<String,String> > map:map_sff_question.entrySet()){
+			for(Map.Entry<String, HashMap<String,ArrayList<String>> > map:map_sff_question.entrySet()){
 
 				
-				HashMap<String,String> mapQuestions = map.getValue();
-				for(Map.Entry<String,String> m:mapQuestions.entrySet()){
-					if (!arr_questionIds.contains(m.getValue())){
-						questionTexts.add(m.getValue());
-						arr_questionIds.add(m.getKey());
+				HashMap<String,ArrayList<String>> mapQuestions = map.getValue();
+				for(Map.Entry<String,ArrayList<String>> m:mapQuestions.entrySet()){
+					if (!arr_questionIds.contains(m.getKey())){
+                                            ArrayList<String> arr = m.getValue();
+                                            questionTexts.put(m.getKey(), arr);
+					    arr_questionIds.add(m.getKey());
 					}
 				}
 			}
@@ -140,13 +141,47 @@ public class GenerateReport {
 			}	
 	         sb.append('\n');
 	
-			sb.append(", , ");
-			for (int i = 0; i < questionTexts.size(); i++){
-			 sb.append(',');
-			 sb.append(questionTexts.get(i));
-			}	
-	         sb.append('\n');
-
+                 HashMap<Integer,String> mLines = new HashMap<Integer,String>();
+                 for (int i = 0; i < arr_questionIds.size(); i++){
+			ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
+			for (int j = 0; j < mArray.size(); j++){
+                            
+                            if(mLines.containsKey(j)){
+                               StringBuilder sb_line  = new StringBuilder(mLines.get(j));
+                               String mStr = sb_line.toString();
+                               mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
+                               mLines.put(j, mStr);
+                            }
+                            else{
+                               StringBuilder sb_line = new StringBuilder();
+                               sb_line.append(", , ,");
+                               for (int x = 0; x < arr_questionIds.size(); x++){
+                                   sb_line.append(arr_questionIds.get(x).trim()+",");
+                               }
+                               String mStr = sb_line.toString();
+                               mStr = mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
+                               mLines.put(j, mStr);
+                            }
+			                         
+  			}	
+	            }
+                    System.out.println("mLines size" + mLines.size());
+                    
+                    
+                     for (int x = 0; x < mLines.size(); x++){
+                            String mStr = mLines.get(x);
+                          for (int y = 0; y < arr_questionIds.size(); y++){
+                              mStr = mStr.replaceAll("\\b" + arr_questionIds.get(y).trim()+ "\\b", " ");
+                          }
+                          mLines.put(x, mStr);
+                        }
+                    
+                    for (int x = 0; x < mLines.size(); x++){
+                            sb.append(mLines.get(x));
+                            sb.append('\n');
+                        }
+                    
+                         sb.append('\n');
 			 pw.write(sb.toString());
 			 sb.setLength(0);
 
@@ -212,7 +247,7 @@ public class GenerateReport {
 /*	 # ================== PARSER METHODS ===================== */
 		
 		public static void parseFormFields(){
-			map_sff_question = new HashMap<String,HashMap<String,String> >(); 
+			map_sff_question = new HashMap<String,HashMap<String,ArrayList<String>>>(); 
 	    	String csvFile = SFF_FORM_FILE_NAME;
 	        BufferedReader br = null;
 	        String line = "";
@@ -227,19 +262,26 @@ public class GenerateReport {
 	                String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 	                if(Line.length == 3)
 	                {
-						HashMap<String,String> map;
+						HashMap<String,ArrayList<String>> map;
+                                                ArrayList<String> arr;
 						String formId = Line[0];
 						String questionId = Line[1];
 						String questionText = Line[2];
 						
 						if (map_sff_question.containsKey(formId)) {
 							map = map_sff_question.get(formId);
+                                                        if(map.containsKey(questionId))
+                                                        arr = map.get(questionId);
+                                                        else{
+                                                            arr = new ArrayList<>();
+                                                        }
 						}
 						else{
-							map = new HashMap<String,String>();
+							map = new HashMap<String,ArrayList<String>>();
+                                                        arr = new ArrayList<>();
 						}
-						
-						map.put(questionId, questionText);
+						arr.add(questionText);
+						map.put(questionId, arr);
 						map_sff_question.put(formId, map);
 
 	                }
@@ -532,5 +574,6 @@ public class GenerateReport {
 	    }
 
 }
+
 
 
