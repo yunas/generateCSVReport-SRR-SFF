@@ -22,9 +22,7 @@ import java.time.temporal.*;
 import java.awt.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
+
 
 
 public class GenerateReport {
