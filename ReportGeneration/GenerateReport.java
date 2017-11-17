@@ -1,3 +1,4 @@
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,12 +20,20 @@ import java.time.chrono.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.*;
 import java.awt.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 
 public class GenerateReport {
+    
+    
+  final public static char COMMA = ',';
+  final public static String COMMA_STR = ",";
+  final public static char ESCAPE_CHAR = '\\';
 	
 		public static  boolean requiresCompleteData = false;
-		public static String SHOP_ID = "665";
+		public static String SHOP_ID = "106757";
 				
 		
 		public static HashMap<String,String> srr_metaData;
@@ -141,43 +150,51 @@ public class GenerateReport {
 			}	
 	         sb.append('\n');
 	
-                 HashMap<Integer,String> mLines = new HashMap<Integer,String>();
+                 System.out.println("Columns: "+arr_questionIds.size());
+                 HashMap<Integer,String[]> mLines = new HashMap<Integer,String[]>();
                  for (int i = 0; i < arr_questionIds.size(); i++){
 			ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
 			for (int j = 0; j < mArray.size(); j++){
                             
                             if(mLines.containsKey(j)){
-                               StringBuilder sb_line  = new StringBuilder(mLines.get(j));
-                               String mStr = sb_line.toString();
-                               mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
-                               mLines.put(j, mStr);
+
+                                    String[] JsonArr_line  = mLines.get(j);
+                                    String escaped =  mArray.get(j);
+                                    JsonArr_line[i] = escaped.replaceAll(",", " ");
+                                    //mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
+                                    mLines.put(j, JsonArr_line);
+                                
                             }
                             else{
-                               StringBuilder sb_line = new StringBuilder();
-                               sb_line.append(", , ,");
-                               for (int x = 0; x < arr_questionIds.size(); x++){
-                                   sb_line.append(arr_questionIds.get(x).trim()+",");
-                               }
-                               String mStr = sb_line.toString();
-                               mStr = mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
-                               mLines.put(j, mStr);
+
+                                    String[] JsonArr_line = new String[arr_questionIds.size()];
+                                                                     
+                                    for (int x = 0; x < arr_questionIds.size(); x++){
+                                        JsonArr_line[x] = " ";
+                                    }
+                           
+                                    String escaped =  mArray.get(j);
+                                     JsonArr_line[i] = escaped.replaceAll(",", " ");
+                                    mLines.put(j, JsonArr_line);
+                               
                             }
 			                         
   			}	
 	            }
-                    System.out.println("mLines size" + mLines.size());
-                    
-                    
-                     for (int x = 0; x < mLines.size(); x++){
-                            String mStr = mLines.get(x);
-                          for (int y = 0; y < arr_questionIds.size(); y++){
-                              mStr = mStr.replaceAll("\\b" + arr_questionIds.get(y).trim()+ "\\b", " ");
-                          }
-                          mLines.put(x, mStr);
-                        }
+                    System.out.println("Language Lines size: " + mLines.size());
                     
                     for (int x = 0; x < mLines.size(); x++){
-                            sb.append(mLines.get(x));
+                         StringBuilder csvBuilder = new StringBuilder();
+                         csvBuilder.append(", , ,");
+                            for (int y = 0; y < mLines.get(x).length; y++){
+                         
+                                 csvBuilder.append(mLines.get(x)[y]);
+                                 csvBuilder.append(",");
+                             
+                            }
+                            String csv = csvBuilder.toString();
+                            System.out.println("line: " + csv);
+                            sb.append(csv);
                             sb.append('\n');
                         }
                     
@@ -573,6 +590,22 @@ public class GenerateReport {
 	    	 }
 	    }
 
+                
+ public static String escapeString(String str, char escapeChar, char charToEscape) {
+    if (str == null) {
+      return null;
+    }
+    StringBuilder result = new StringBuilder();
+    for (int i=0; i<str.length(); i++) {
+      char curChar = str.charAt(i);
+      if (curChar == escapeChar || curChar == charToEscape) {
+        // special char
+        result.append(escapeChar);
+      }
+      result.append(curChar);
+    }
+    return result.toString();
+  }
 }
 
 
