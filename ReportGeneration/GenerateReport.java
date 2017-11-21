@@ -43,7 +43,7 @@ public class GenerateReport {
         parseSRRData();
         parseSFF();
         mergeSFFData();
-        //mergeSFFDataWithSeparateFiles();
+        mergeSFFDataWithSeparateFiles();
     }
 
     /*	 # ================== BUSINESS LOGIC METHODS ===================== */
