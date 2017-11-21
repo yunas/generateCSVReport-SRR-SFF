@@ -160,8 +160,8 @@ public class GenerateReport {
 
                                     String[] JsonArr_line  = mLines.get(j);
                                     String escaped =  mArray.get(j);
-                                    JsonArr_line[i] = escaped.replaceAll(",", " ");
-                                    //mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
+                                    JsonArr_line[i] = escaped;//.replaceAll(",", " ");
+//                                    mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
                                     mLines.put(j, JsonArr_line);
                                 
                             }
@@ -174,7 +174,7 @@ public class GenerateReport {
                                     }
                            
                                     String escaped =  mArray.get(j);
-                                     JsonArr_line[i] = escaped.replaceAll(",", " ");
+                                     JsonArr_line[i] = escaped;//.replaceAll(",", " ");
                                     mLines.put(j, JsonArr_line);
                                
                             }
@@ -490,12 +490,24 @@ public class GenerateReport {
 		    	String csvFile = SRR_FILE_NAME;
 		        BufferedReader br = null;
 		        String line = "";
-		        
+		        long lineNumber = 0;
+				long occurance = 0;
 		        try {
 
 		            br = new BufferedReader(new FileReader(csvFile));
 		            while ((line = br.readLine()) != null) 
 		            {
+						occurance = line.chars().filter(num -> num == '"').count();
+						while ( occurance % 2 != 0 ){
+							line += br.readLine();
+							occurance = line.chars().filter(num -> num == '"').count();
+						}
+//						if (lineNumber >= 16){
+//							System.out.println("Line Read: "+ line);	
+//						}
+//						System.out.println("Line Read: "+ lineNumber);
+						lineNumber++;
+
 
 		                String[] srrLine = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 		                if(srrLine.length == 2)
@@ -554,9 +566,13 @@ public class GenerateReport {
 				
 				Date minDate;
 				
-//				for (int i = 0; i < arrOpened.size(); i++){
-//					System.out.println(arrOpened.get(i));
+//				if (orderId.equals("\"VQ2719\"")){
+//					System.out.println(orderId);
+//					for (int i = 0; i < arrOpened.size(); i++){
+//						System.out.println(arrOpened.get(i));
+//					}
 //				}
+				
 				if (arrOpened.size() > 0){
 					minDate = Collections.min(arrOpened);	
 				}
