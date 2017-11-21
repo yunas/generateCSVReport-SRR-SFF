@@ -160,7 +160,7 @@ public class GenerateReport {
 
                                     String[] JsonArr_line  = mLines.get(j);
                                     String escaped =  mArray.get(j);
-                                    JsonArr_line[i] = escaped;//.replaceAll(",", " ");
+                                    JsonArr_line[i] = escaped.replaceAll(",", " ");
 //                                    mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
                                     mLines.put(j, JsonArr_line);
                                 
@@ -174,7 +174,7 @@ public class GenerateReport {
                                     }
                            
                                     String escaped =  mArray.get(j);
-                                     JsonArr_line[i] = escaped;//.replaceAll(",", " ");
+                                     JsonArr_line[i] = escaped.replaceAll(",", " ");
                                     mLines.put(j, JsonArr_line);
                                
                             }
