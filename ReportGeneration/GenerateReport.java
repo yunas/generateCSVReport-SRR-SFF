@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,23 +21,39 @@ public class GenerateReport {
     final public static char ESCAPE_CHAR = '\\';
 
     public static boolean requiresCompleteData = false;
+    public static boolean requiresQuestionText = true;
+    public static boolean requiresQuestionMapping = true;
+    public static boolean requiresMergedFormFieldsAndIPSOS = true;
     public static String SHOP_ID = "106757";
 
+    public static HashMap<String, String> mapping_ekomi_ipsos;
     public static HashMap<String, String> srr_metaData;
     public static HashMap<String, HashMap<String, ArrayList<String>>> map_sff_question;
     public static HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> map_sff_question_with_surveyId;
     public static HashMap<String, HashMap<String, String>> map_sff_answers;
     public static HashMap<String, ArrayList<HashMap<String, HashMap<String, String>>>> map_sff_answers_with_surveyId;
     public static ArrayList<String> arr_questionIds;
-    
-    //public static ArrayList<String> uq_id = new ArrayList<>();
 
+    //public static ArrayList<String> uq_id = new ArrayList<>();
+    public static String IPSOS_FILE_NAME = SHOP_ID + "/mapping_ekomi_ipsos.csv";
     public static String SFF_FORM_FILE_NAME = SHOP_ID + "/sff_forms_fields.csv";
     public static String SFF_FILE_NAME = SHOP_ID + "/sff_reviews.csv";//"sff_reviews_sample_2.csv";
     public static String SRR_FILE_NAME = SHOP_ID + "/srr_orders.csv";
-    public static String SFF_SRR_FILE_NAME = "REPORT (" + SHOP_ID + ").csv";
+    public static String SFF_SRR_FILE_NAME = "FullReport(" + SHOP_ID + ").csv";
+    public static String SURVEY_BASED_REPORT_FILE_NAME = "-" + SHOP_ID + ".csv";
+    public static String MERGED_FORMS_FIELDS_IPSOS_FILE_NAME = "sff_forms_fields_ipsos.csv";
 
     public static void main(String[] args) throws FileNotFoundException {
+        if (requiresQuestionMapping) {
+            parseIPSOSFILEData();
+
+        }
+        if (requiresMergedFormFieldsAndIPSOS) {
+            if (mapping_ekomi_ipsos == null || mapping_ekomi_ipsos.size() == 0) {
+                parseIPSOSFILEData();
+            }
+            mergeFormFieldsAndIPSOS();
+        }
         parseFormFields();
         parseSRRData();
         parseSFF();
@@ -48,7 +63,7 @@ public class GenerateReport {
 
     /*	 # ================== BUSINESS LOGIC METHODS ===================== */
     public static void mergeSFFDataWithSeparateFiles() {
-        String DirPath = "FILES [" + SHOP_ID + "]";
+        String DirPath = "SurveyBasedReports (" + SHOP_ID + ")";
         File theDir = new File(DirPath);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + theDir.getName());
@@ -67,7 +82,7 @@ public class GenerateReport {
             String survey_id = mMain.getKey();
             ArrayList<HashMap<String, HashMap<String, String>>> mArrayList = mMain.getValue();
 
-            File file = new File(DirPath + File.separator + survey_id + " " + SFF_SRR_FILE_NAME);
+            File file = new File(DirPath + File.separator + "Report-" + survey_id + SURVEY_BASED_REPORT_FILE_NAME);
             PrintWriter pw;
             StringBuilder sb = new StringBuilder();
             int lineNumber = 0;
@@ -199,58 +214,71 @@ public class GenerateReport {
 
         for (int i = 0; i < arr_questionIds.size(); i++) {
             sb.append(',');
-            sb.append(arr_questionIds.get(i));
+            if (requiresQuestionMapping) {
+                if (mapping_ekomi_ipsos.containsKey(arr_questionIds.get(i))) {
+                    sb.append(mapping_ekomi_ipsos.get(arr_questionIds.get(i)));
+                } else {
+                    sb.append(arr_questionIds.get(i));
+                }
+            } else {
+                sb.append(arr_questionIds.get(i));
+            }
+
         }
+
         sb.append('\n');
 
         System.out.println("Columns: " + arr_questionIds.size());
-        HashMap<Integer, String[]> mLines = new HashMap<Integer, String[]>();
-        for (int i = 0; i < arr_questionIds.size(); i++) {
-            ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
-            for (int j = 0; j < mArray.size(); j++) {
 
-                if (mLines.containsKey(j)) {
+        if (requiresQuestionText) {
+            HashMap<Integer, String[]> mLines = new HashMap<Integer, String[]>();
+            for (int i = 0; i < arr_questionIds.size(); i++) {
+                ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
+                for (int j = 0; j < mArray.size(); j++) {
 
-                    String[] JsonArr_line = mLines.get(j);
-                    String escaped = mArray.get(j);
-                    JsonArr_line[i] = escaped.replaceAll(",", " ");
+                    if (mLines.containsKey(j)) {
+
+                        String[] JsonArr_line = mLines.get(j);
+                        String escaped = mArray.get(j);
+                        JsonArr_line[i] = escaped.replaceAll(",", " ");
 //                                    mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
-                    mLines.put(j, JsonArr_line);
+                        mLines.put(j, JsonArr_line);
 
-                } else {
+                    } else {
 
-                    String[] JsonArr_line = new String[arr_questionIds.size()];
+                        String[] JsonArr_line = new String[arr_questionIds.size()];
 
-                    for (int x = 0; x < arr_questionIds.size(); x++) {
-                        JsonArr_line[x] = " ";
+                        for (int x = 0; x < arr_questionIds.size(); x++) {
+                            JsonArr_line[x] = " ";
+                        }
+
+                        String escaped = mArray.get(j);
+                        JsonArr_line[i] = escaped.replaceAll(",", " ");
+                        mLines.put(j, JsonArr_line);
+
                     }
 
-                    String escaped = mArray.get(j);
-                    JsonArr_line[i] = escaped.replaceAll(",", " ");
-                    mLines.put(j, JsonArr_line);
-
                 }
-
             }
-        }
 //                    System.out.println("Language Lines size: " + mLines.size());
 
-        for (int x = 0; x < mLines.size(); x++) {
-            StringBuilder csvBuilder = new StringBuilder();
-            csvBuilder.append(", , ,");
-            for (int y = 0; y < mLines.get(x).length; y++) {
+            for (int x = 0; x < mLines.size(); x++) {
+                StringBuilder csvBuilder = new StringBuilder();
+                csvBuilder.append(", , ,");
+                for (int y = 0; y < mLines.get(x).length; y++) {
 
-                csvBuilder.append(mLines.get(x)[y]);
-                csvBuilder.append(",");
+                    csvBuilder.append(mLines.get(x)[y]);
+                    csvBuilder.append(",");
 
-            }
-            String csv = csvBuilder.toString();
+                }
+                String csv = csvBuilder.toString();
 //                            System.out.println("line: " + csv);
-            sb.append(csv);
+                sb.append(csv);
+                sb.append('\n');
+            }
+
             sb.append('\n');
         }
-
-        sb.append('\n');
         pw.write(sb.toString());
         sb.setLength(0);
 
@@ -276,58 +304,70 @@ public class GenerateReport {
 
         for (int i = 0; i < arr_questionIds.size(); i++) {
             sb.append(',');
-            sb.append(arr_questionIds.get(i));
+            if (requiresQuestionMapping) {
+                if (mapping_ekomi_ipsos.containsKey(arr_questionIds.get(i))) {
+                    sb.append(mapping_ekomi_ipsos.get(arr_questionIds.get(i)));
+                } else {
+                    sb.append(arr_questionIds.get(i));
+                }
+            } else {
+                sb.append(arr_questionIds.get(i));
+            }
+
         }
         sb.append('\n');
 
         System.out.println("Columns: " + arr_questionIds.size());
-        HashMap<Integer, String[]> mLines = new HashMap<Integer, String[]>();
-        for (int i = 0; i < arr_questionIds.size(); i++) {
-            ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
-            for (int j = 0; j < mArray.size(); j++) {
 
-                if (mLines.containsKey(j)) {
+        if (requiresQuestionText) {
+            HashMap<Integer, String[]> mLines = new HashMap<Integer, String[]>();
+            for (int i = 0; i < arr_questionIds.size(); i++) {
+                ArrayList<String> mArray = questionTexts.get(arr_questionIds.get(i));
+                for (int j = 0; j < mArray.size(); j++) {
 
-                    String[] JsonArr_line = mLines.get(j);
-                    String escaped = mArray.get(j);
-                    JsonArr_line[i] = escaped.replaceAll(",", " ");
+                    if (mLines.containsKey(j)) {
+
+                        String[] JsonArr_line = mLines.get(j);
+                        String escaped = mArray.get(j);
+                        JsonArr_line[i] = escaped.replaceAll(",", " ");
 //                                    mStr=mStr.replaceAll("\\b" + arr_questionIds.get(i).trim()+ "\\b",mArray.get(j));
-                    mLines.put(j, JsonArr_line);
+                        mLines.put(j, JsonArr_line);
 
-                } else {
+                    } else {
 
-                    String[] JsonArr_line = new String[arr_questionIds.size()];
+                        String[] JsonArr_line = new String[arr_questionIds.size()];
 
-                    for (int x = 0; x < arr_questionIds.size(); x++) {
-                        JsonArr_line[x] = " ";
+                        for (int x = 0; x < arr_questionIds.size(); x++) {
+                            JsonArr_line[x] = " ";
+                        }
+
+                        String escaped = mArray.get(j);
+                        JsonArr_line[i] = escaped.replaceAll(",", " ");
+                        mLines.put(j, JsonArr_line);
+
                     }
 
-                    String escaped = mArray.get(j);
-                    JsonArr_line[i] = escaped.replaceAll(",", " ");
-                    mLines.put(j, JsonArr_line);
-
                 }
-
             }
-        }
 //                    System.out.println("Language Lines size: " + mLines.size());
 
-        for (int x = 0; x < mLines.size(); x++) {
-            StringBuilder csvBuilder = new StringBuilder();
-            csvBuilder.append(", , ,");
-            for (int y = 0; y < mLines.get(x).length; y++) {
+            for (int x = 0; x < mLines.size(); x++) {
+                StringBuilder csvBuilder = new StringBuilder();
+                csvBuilder.append(", , ,");
+                for (int y = 0; y < mLines.get(x).length; y++) {
 
-                csvBuilder.append(mLines.get(x)[y]);
-                csvBuilder.append(",");
+                    csvBuilder.append(mLines.get(x)[y]);
+                    csvBuilder.append(",");
 
-            }
-            String csv = csvBuilder.toString();
+                }
+                String csv = csvBuilder.toString();
 //                            System.out.println("line: " + csv);
-            sb.append(csv);
+                sb.append(csv);
+                sb.append('\n');
+            }
+
             sb.append('\n');
         }
-
-        sb.append('\n');
         pw.write(sb.toString());
         sb.setLength(0);
 
@@ -385,7 +425,7 @@ public class GenerateReport {
 
     /*	 # ================== PARSER METHODS ===================== */
     public static void parseFormFields() {
-        map_sff_question_with_surveyId = new HashMap <>();
+        map_sff_question_with_surveyId = new HashMap<>();
         map_sff_question = new HashMap<String, HashMap<String, ArrayList<String>>>();
         String csvFile = SFF_FORM_FILE_NAME;
         BufferedReader br = null;
@@ -417,8 +457,6 @@ public class GenerateReport {
                     String formId = Line[1];
                     String questionId = Line[2];
                     String questionText = Line[3];
-                    
-                   
 
                     if (map_sff_question.containsKey(formId)) {
                         map = map_sff_question.get(formId);
@@ -463,7 +501,6 @@ public class GenerateReport {
             }
         }
 
-        
     }
 
     public static void parseSFF() {
@@ -511,12 +548,10 @@ public class GenerateReport {
                     String opened_at = Line[7];
                     created_at = created_at.replace("\"", "");
                     opened_at = opened_at.replace("\"", "");
-                    
+
 //                     if(!uq_id.contains(survey_id)){
 //                        uq_id.add(survey_id);
 //                    }
-                    
-                    
                     if (srr_metaData.containsKey(orderId)) {
                         metaData = srr_metaData.get(orderId);
                     }
@@ -594,12 +629,11 @@ public class GenerateReport {
         }
 
         System.out.println("Total Reviews: " + map_sff_answers.size());
-        
+
 //        System.out.println("uq_id size "+uq_id.size());
 //        for(int x = 0 ; x < uq_id.size() ; x++){
 //            System.out.println("uq_id "+uq_id.get(x));
 //        }
-
     }
 
     public static void parseSRRData() {
@@ -680,7 +714,7 @@ public class GenerateReport {
 
 //				System.out.println("MinDate "+ minDate);
 //				System.out.println("MaxDate "+ maxDate);				
-            String completionTime = differenceBetweenDates(minDate, maxDate) + "s";
+            String completionTime = differenceBetweenDates(minDate, maxDate) + "";
             if (map_sff_answers.containsKey(orderId)) {
                 HashMap<String, String> review = map_sff_answers.get(orderId);
                 review.put("surveyCompletion", completionTime);//created_at
@@ -746,5 +780,108 @@ public class GenerateReport {
             result.append(curChar);
         }
         return result.toString();
+    }
+
+    public static void parseIPSOSFILEData() {
+        mapping_ekomi_ipsos = new HashMap<String, String>();
+        String csvFile = IPSOS_FILE_NAME;
+        BufferedReader br = null;
+        String line = "";
+        long lineNumber = 0;
+
+        try {
+
+            br = new BufferedReader(new FileReader(csvFile));
+            while ((line = br.readLine()) != null) {
+
+                lineNumber++;
+
+                String[] srrLine = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+                if (srrLine.length == 2) {
+                    mapping_ekomi_ipsos.put(srrLine[0], srrLine[1]);
+                }
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+
+            System.out.println("Mapping Ekomi ipsos Count: " + mapping_ekomi_ipsos.size());
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void mergeFormFieldsAndIPSOS() {
+
+        String csvFile = SFF_FORM_FILE_NAME;
+        BufferedReader br = null;
+        String line = "";
+
+        File file = new File(MERGED_FORMS_FIELDS_IPSOS_FILE_NAME);
+        PrintWriter pw;
+        StringBuilder sb = new StringBuilder();
+
+        try {
+            file.createNewFile();
+            pw = new PrintWriter(file);
+            sb.append("survey_id, id, id, ipsos_id, translation");
+            sb.append('\n');
+            br = new BufferedReader(new FileReader(csvFile));
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+
+                String[] Line = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+                if (Line.length == 4) {
+                    HashMap<String, ArrayList<String>> map;
+                    ArrayList<String> arr;
+                    String survey_id = Line[0];
+                    String formId = Line[1];
+                    String questionId = Line[2];
+                    String questionText = Line[3];
+
+                    sb.append(survey_id);
+                    sb.append(',');
+                    sb.append(formId);
+                    sb.append(',');
+                    sb.append(questionId);
+                    sb.append(',');
+                    if (mapping_ekomi_ipsos.containsKey(questionId)) {
+                        sb.append(mapping_ekomi_ipsos.get(questionId));
+                    } else {
+                        sb.append(' ');
+                    }
+                    sb.append(',');
+                    sb.append(questionText);
+
+                    pw.write(sb.toString());
+                    sb.setLength(0);
+                    sb.append('\n');
+                }
+            }
+            pw.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
 }
